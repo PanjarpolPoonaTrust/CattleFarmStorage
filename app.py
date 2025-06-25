@@ -53,5 +53,10 @@ def logout():
 
 # Add your additional routes here
 
+@app.route('/')
+def home():
+    return redirect(url_for('login'))  # Redirect root to login page
+
+
 if __name__ == '__main__':
     app.run(debug=True)
