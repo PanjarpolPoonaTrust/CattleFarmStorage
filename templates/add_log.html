@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Add Checkup Log - Cattle Health System{% endblock %}
+
+{% block content %}
+    <h2>Add Checkup Log for Cattle ID {{ cattle_id }}</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="checkup_date">Checkup Date</label>
+            <input type="date" id="checkup_date" name="checkup_date" class="form-control" value="{{ today }}" required>
+        </div>
+        <div class="form-group">
+            <label>Diagnosis</label>
+            <input name="diagnosis" placeholder="e.g., Fever, Infection" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Medicines Prescribed</label>
+            <input name="medicines" placeholder="e.g., Paracetamol, Antibiotics" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Remarks</label>
+            <textarea name="remarks" placeholder="e.g., Condition improving" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Treatment Photo (Optional)</label>
+            <input type="file" name="treatment_photo" class="form-control-file">
+        </div>
+        <div class="form-actions mt-3">
+            <button type="submit" class="btn btn-primary">Add Log</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Ensure the date field is populated if the browser doesn't support the value attribute for type="date"
+        document.addEventListener("DOMContentLoaded", function() {
+            var dateInput = document.getElementById('checkup_date');
+            if (!dateInput.value) {
+                var today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
+        });
+    </script>
+{% endblock %}

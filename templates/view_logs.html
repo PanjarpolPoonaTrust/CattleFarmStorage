@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Checkup History for Cattle #{{ cattle_id }}{% endblock %}
+
+{% block content %}
+    <h2>Checkup History for Cattle ID {{ cattle_id }}</h2>
+    
+    {% if logs %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Diagnosis</th>
+                        <th>Medicines</th>
+                        <th>Remarks</th>
+                        <th>Photo</th>
+                        <th>Doctor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log[0] }}</td>
+                        <td>{{ log[1] }}</td>
+                        <td>{{ log[2] }}</td>
+                        <td>{{ log[3] }}</td>
+                        <td>
+                            {% if log[4] %}
+                                <a href="{{ url_for('static', filename='uploads/' + log[4]) }}" data-lightbox="log-{{ log[0] }}" data-title="Checkup on {{ log[0] }} by Dr. {{ log[5] }}">
+                                    <img src="{{ url_for('static', filename='uploads/' + log[4]) }}" width="80" class="cattle-photo rounded">
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td>{{ log[5] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p>No checkup history found for this cattle.</p>
+            <a href="{{ url_for('add_log', cattle_id=cattle_id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add First Checkup Log</a>
+        </div>
+    {% endif %}
+
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left"></i> Back to Home</a>
+{% endblock %} 
