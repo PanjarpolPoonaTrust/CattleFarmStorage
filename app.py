@@ -17,7 +17,7 @@ app.secret_key = 'your-secret-key-here'  # Required for flash messages and sessi
 # Create uploads folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Connect to Supabase PostgreSQL via pooler
+# Connect to Supabase via connection pooling
 db = psycopg2.connect(os.environ['DATABASE_URL'])
 cursor = db.cursor()
 
