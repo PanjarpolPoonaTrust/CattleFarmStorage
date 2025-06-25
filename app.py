@@ -21,31 +21,25 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 db = psycopg2.connect(os.environ['DATABASE_URL'])
 cursor = db.cursor()
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'doctor_id' not in session:
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        try:
-            conn = psycopg2.connect(os.environ['DATABASE_URL'])
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, password FROM doctors WHERE username=%s", (username,))
-            doctor = cursor.fetchone()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            print("Database error:", e)
-            flash("Database error.", "danger")
-            return render_template('login.html')
 
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, password FROM doctors WHERE username = %s", (username,))
+        doctor = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if doctor and check_password_hash(doctor[1], password):
+            session['doctor_id'] = doctor[0]
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password', 'danger')
+    return render_template('login.html')
         if doctor and check_password_hash(doctor[1], password):
             session['doctor_id'] = doctor[0]
             session['doctor_username'] = username
