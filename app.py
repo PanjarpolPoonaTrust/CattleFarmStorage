@@ -34,8 +34,18 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        cursor.execute("SELECT id, password FROM doctors WHERE username=%s", (username,))
-        doctor = cursor.fetchone()
+        try:
+            conn = psycopg2.connect(os.environ['DATABASE_URL'])
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, password FROM doctors WHERE username=%s", (username,))
+            doctor = cursor.fetchone()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print("Database error:", e)
+            flash("Database error.", "danger")
+            return render_template('login.html')
+
         if doctor and check_password_hash(doctor[1], password):
             session['doctor_id'] = doctor[0]
             session['doctor_username'] = username
