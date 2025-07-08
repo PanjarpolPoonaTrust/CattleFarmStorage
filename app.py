@@ -16,22 +16,25 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # ==================================
 def check_password_scrypt(stored_hash, password):
     try:
-        # Format: scrypt$<salt_b64>$<hash_b64>
-        _, salt_b64, hash_b64 = stored_hash.split('$')
+        # Format: scrypt:<n>:<r>:<p>$<salt_b64>$<hash_hex>
+        prefix, salt_b64, hash_hex = stored_hash.split('$')
+        _, n, r, p = prefix.split(':')
         salt = base64.b64decode(salt_b64)
-        expected_hash = base64.b64decode(hash_b64)
+        expected_hash = bytes.fromhex(hash_hex)
 
         new_hash = hashlib.scrypt(
             password.encode('utf-8'),
             salt=salt,
-            n=2**14,
-            r=8,
-            p=1,
+            n=int(n),
+            r=int(r),
+            p=int(p),
             dklen=64
         )
         return new_hash == expected_hash
-    except Exception:
+    except Exception as e:
+        print("Error in check_password_scrypt:", e)
         return False
+
 
 # ==================================
 # 🔌 Database Connection Helper
