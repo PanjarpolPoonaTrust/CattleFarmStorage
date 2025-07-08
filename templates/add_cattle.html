@@ -1,53 +1,30 @@
 {% extends "base.html" %}
-
-{% block title %}Add Cattle - Cattle Health System{% endblock %}
-
 {% block content %}
+<div class="container mt-4">
     <h2>Add New Cattle</h2>
-    <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label>Breed</label>
-            <input name="breed" placeholder="e.g., Gir, Sahiwal" class="form-control" required>
+    <form method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="breed" class="form-label">Breed</label>
+            <input type="text" class="form-control" name="breed" required>
         </div>
-        <div class="form-group">
-            <label>Color</label>
-            <input name="color" placeholder="e.g., Brown, White" class="form-control" required>
+        <div class="mb-3">
+            <label for="color" class="form-label">Color</label>
+            <input type="text" class="form-control" name="color" required>
         </div>
-        <div class="form-group">
-            <label>Age</label>
-            <input name="age" type="number" placeholder="e.g., 5" class="form-control" required>
+        <div class="mb-3">
+            <label for="age" class="form-label">Age</label>
+            <input type="number" class="form-control" name="age" required>
         </div>
-        <div class="form-group">
-            <label>Shed No.</label>
-            <input name="shed_no" placeholder="e.g., A-03" class="form-control" required>
+        <div class="mb-3">
+            <label for="shed_no" class="form-label">Shed No</label>
+            <input type="text" class="form-control" name="shed_no" required>
         </div>
-        <div class="form-group">
-            <label>Notes</label>
-            <textarea name="notes" placeholder="Any specific details about the cattle..." class="form-control"></textarea>
+        <div class="mb-3">
+            <label for="photo1" class="form-label">Photo</label>
+            <input type="file" class="form-control" name="photo1">
         </div>
-
-        <div class="form-row">
-            <div class="form-group col-md-6 col-12">
-                <label>Photo 1</label>
-                <input type="file" name="photo1" accept="image/*" class="form-control-file">
-            </div>
-            <div class="form-group col-md-6 col-12">
-                <label>Photo 2</label>
-                <input type="file" name="photo2" accept="image/*" class="form-control-file">
-            </div>
-            <div class="form-group col-md-6 col-12">
-                <label>Photo 3</label>
-                <input type="file" name="photo3" accept="image/*" class="form-control-file">
-            </div>
-            <div class="form-group col-md-6 col-12">
-                <label>Photo 4</label>
-                <input type="file" name="photo4" accept="image/*" class="form-control-file">
-            </div>
-        </div>
-
-        <div class="form-actions mt-3">
-            <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Add Cattle</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
-        </div>
+        <button type="submit" class="btn btn-primary">Add Cattle</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
     </form>
+</div>
 {% endblock %}
