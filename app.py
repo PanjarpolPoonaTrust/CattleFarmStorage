@@ -61,14 +61,17 @@ def login():
 
         try:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, password FROM doctors WHERE username = %s", (username,))
+            # ✅ Only selecting username and password now
+            cursor.execute(
+                "SELECT username, password FROM doctors WHERE username = %s",
+                (username,)
+            )
             doctor = cursor.fetchone()
             cursor.close()
             conn.close()
 
             if doctor and check_password_scrypt(doctor[1], password):
-                session['doctor_id'] = doctor[0]
-                session['doctor_username'] = username
+                session['doctor_username'] = doctor[0]
                 flash('Login successful!', 'success')
                 return redirect(url_for('dashboard'))
             else:
@@ -102,7 +105,7 @@ def home():
 # ==================================
 @app.route('/dashboard')
 def dashboard():
-    if 'doctor_id' not in session:
+    if 'doctor_username' not in session:
         return redirect(url_for('login'))
     return f"Welcome Dr. {session.get('doctor_username')}!"
 
