@@ -6,7 +6,7 @@ import base64
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.secret_key = os.environ.get("SECRET_KEY", "temporary-secret-key")  # Better for security
+app.secret_key = os.environ.get("SECRET_KEY", "temporary-secret-key")
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -37,7 +37,13 @@ def check_password_scrypt(stored_hash, password):
 # 🔌 Database Connection Helper
 # ==================================
 def get_db_connection():
-    return psycopg2.connect(os.environ['DATABASE_URL'])
+    try:
+        db_url = os.environ['DATABASE_URL']
+        conn = psycopg2.connect(db_url)
+        return conn
+    except Exception as e:
+        print("❌ Database connection failed:", e)
+        return None
 
 # ==================================
 # 🔑 Login Route
@@ -49,19 +55,29 @@ def login():
         password = request.form['password']
 
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, password FROM doctors WHERE username = %s", (username,))
-        doctor = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        if conn is None:
+            flash("Database connection error. Please try again later.", "danger")
+            return render_template('login.html')
 
-        if doctor and check_password_scrypt(doctor[1], password):
-            session['doctor_id'] = doctor[0]
-            session['doctor_username'] = username
-            flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid username or password', 'danger')
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, password FROM doctors WHERE username = %s", (username,))
+            doctor = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            if doctor and check_password_scrypt(doctor[1], password):
+                session['doctor_id'] = doctor[0]
+                session['doctor_username'] = username
+                flash('Login successful!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid username or password', 'danger')
+
+        except Exception as e:
+            print("❌ Error during login query:", e)
+            flash("Internal server error.", "danger")
+            return render_template('login.html')
 
     return render_template('login.html')
 
@@ -94,7 +110,5 @@ def dashboard():
 # 🚀 Run
 # ==================================
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
