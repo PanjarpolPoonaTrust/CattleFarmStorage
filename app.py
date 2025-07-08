@@ -4,9 +4,8 @@ import psycopg2
 import psycopg2.extras
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "defaultsecret")
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
-# Database connection details
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "your_db_name")
 DB_USER = os.getenv("DB_USER", "your_db_user")
@@ -32,20 +31,21 @@ def login():
         password = request.form["password"]
 
         conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM doctors WHERE username = %s AND password = %s", (username, password))
-        doctor = cursor.fetchone()
-
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM doctors WHERE username=%s AND password=%s",
+            (username, password)
+        )
+        user = cur.fetchone()
+        cur.close()
         conn.close()
 
-        if doctor:
+        if user:
             session["logged_in"] = True
-            session["username"] = username
             return redirect(url_for("dashboard"))
         else:
-            flash("Invalid credentials. Please try again.", "danger")
+            flash("Invalid credentials", "danger")
+            return render_template("login.html")
 
     return render_template("login.html")
 
@@ -54,24 +54,25 @@ def dashboard():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    result = []
     searched = None
+    result = []
 
     if request.method == "POST":
         searched = request.form["searched"]
 
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cur = conn.cursor()
 
-        cursor.execute("""
+        cur.execute(
+            """
             SELECT id, breed, color, age, shed_no, photo1
             FROM cattle_info
             WHERE breed ILIKE %s OR color ILIKE %s
-        """, (f"%{searched}%", f"%{searched}%"))
-
-        result = cursor.fetchall()
-
-        cursor.close()
+            """,
+            (f"%{searched}%", f"%{searched}%")
+        )
+        result = cur.fetchall()
+        cur.close()
         conn.close()
 
     return render_template("index.html", searched=searched, result=result)
@@ -89,18 +90,18 @@ def add_cattle():
         photo1 = request.form["photo1"]
 
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cur = conn.cursor()
 
-        cursor.execute("""
+        cur.execute("""
             INSERT INTO cattle_info (breed, color, age, shed_no, photo1)
             VALUES (%s, %s, %s, %s, %s)
         """, (breed, color, age, shed_no, photo1))
 
         conn.commit()
-        cursor.close()
+        cur.close()
         conn.close()
 
-        flash("Cattle record added successfully.", "success")
+        flash("Cattle added successfully!", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("add_cattle.html")
