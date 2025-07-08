@@ -3,8 +3,8 @@ import psycopg2
 import os
 import hashlib
 import base64
+import uuid
 from werkzeug.utils import secure_filename
-from datetime import datetime
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -18,7 +18,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # ==================================
 def check_password_scrypt(stored_hash, password):
     try:
-        # Format: scrypt:<n>:<r>:<p>$<salt_b64>$<hash_hex>
         prefix, salt_b64, hash_hex = stored_hash.split('$')
         _, n, r, p = prefix.split(':')
         salt = base64.b64decode(salt_b64)
@@ -37,7 +36,6 @@ def check_password_scrypt(stored_hash, password):
         print("Error in check_password_scrypt:", e)
         return False
 
-
 # ==================================
 # 🔌 Database Connection Helper
 # ==================================
@@ -49,7 +47,6 @@ def get_db_connection():
     except Exception as e:
         print("❌ Database connection failed:", e)
         return None
-
 
 # ==================================
 # 🔑 Login Route
@@ -89,7 +86,6 @@ def login():
 
     return render_template('login.html')
 
-
 # ==================================
 # 🚪 Logout
 # ==================================
@@ -99,7 +95,6 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
-
 # ==================================
 # 🏠 Home Redirect
 # ==================================
@@ -107,9 +102,8 @@ def logout():
 def home():
     return redirect(url_for('login'))
 
-
 # ==================================
-# 📊 Dashboard
+# 📊 Dashboard (Search + Results)
 # ==================================
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
@@ -120,10 +114,10 @@ def dashboard():
     result = []
 
     if request.method == 'POST':
-        breed = request.form.get('breed', '').strip()
-        color = request.form.get('color', '').strip()
-        age = request.form.get('age', '').strip()
-        shed_no = request.form.get('shed_no', '').strip()
+        breed = request.form.get('breed')
+        color = request.form.get('color')
+        age = request.form.get('age')
+        shed_no = request.form.get('shed_no')
 
         query = "SELECT * FROM cattle_info WHERE 1=1"
         params = []
@@ -142,10 +136,10 @@ def dashboard():
             params.append(f"%{shed_no}%")
 
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(query, tuple(params))
-        result = cursor.fetchall()
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        result = cur.fetchall()
+        cur.close()
         conn.close()
 
         searched = True
@@ -156,7 +150,6 @@ def dashboard():
         result=result
     )
 
-
 # ==================================
 # ➕ Add Cattle
 # ==================================
@@ -166,42 +159,49 @@ def add_cattle():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        breed = request.form['breed']
-        color = request.form['color']
-        age = request.form['age']
-        shed_no = request.form['shed_no']
-        notes = request.form.get('notes', '')
+        breed = request.form.get('breed')
+        color = request.form.get('color')
+        age = request.form.get('age')
+        shed_no = request.form.get('shed_no')
+        notes = request.form.get('notes')
 
-        photos = []
+        photo_filenames = []
         for field in ['photo1', 'photo2', 'photo3', 'photo4']:
-            file = request.files.get(field)
-            if file and file.filename:
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                photos.append(filename)
+            photo = request.files.get(field)
+            if photo and photo.filename != '':
+                filename = secure_filename(photo.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                photo.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+                photo_filenames.append(unique_filename)
             else:
-                photos.append(None)
+                photo_filenames.append(None)
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO cattle_info
-            (breed, color, age, shed_no, notes, photo1, photo2, photo3, photo4)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (breed, color, age, shed_no, notes,
-              photos[0], photos[1], photos[2], photos[3]))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO cattle_info
+                (breed, color, age, shed_no, notes, photo1, photo2, photo3, photo4)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                breed, color, age, shed_no, notes,
+                photo_filenames[0], photo_filenames[1],
+                photo_filenames[2], photo_filenames[3]
+            ))
+            conn.commit()
+            cur.close()
+            conn.close()
+            flash("Cattle record added successfully!", "success")
+            return redirect(url_for('dashboard'))
 
-        flash("Cattle added successfully!", "success")
-        return redirect(url_for('dashboard'))
+        except Exception as e:
+            print("❌ Error inserting cattle:", e)
+            flash("Error adding cattle. Please try again.", "danger")
 
     return render_template('add_cattle.html')
 
-
 # ==================================
-# ➕ Add Checkup Log
+# ➕ Add Health Log
 # ==================================
 @app.route('/add_log/<int:cattle_id>', methods=['GET', 'POST'])
 def add_log(cattle_id):
@@ -209,47 +209,45 @@ def add_log(cattle_id):
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        checkup_date = request.form['checkup_date']
-        diagnosis = request.form['diagnosis']
-        medicines = request.form['medicines']
-        remarks = request.form['remarks']
-        doctor_username = session['doctor_username']
+        checkup_date = request.form.get('checkup_date')
+        diagnosis = request.form.get('diagnosis')
+        medicines = request.form.get('medicines')
+        remarks = request.form.get('remarks')
 
         treatment_photo = request.files.get('treatment_photo')
-        treatment_photo_filename = None
+        photo_filename = None
 
-        if treatment_photo and treatment_photo.filename:
-            treatment_photo_filename = secure_filename(treatment_photo.filename)
-            treatment_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], treatment_photo_filename))
+        if treatment_photo and treatment_photo.filename != '':
+            filename = secure_filename(treatment_photo.filename)
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            treatment_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            photo_filename = unique_filename
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO health_log
-            (cattle_id, checkup_date, diagnosis, medicines, remarks, photo, doctor_username)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (
-            cattle_id,
-            checkup_date,
-            diagnosis,
-            medicines,
-            remarks,
-            treatment_photo_filename,
-            doctor_username
-        ))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO health_log
+                (cattle_id, checkup_date, diagnosis, medicines, remarks, photo, doctor_username)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                cattle_id, checkup_date, diagnosis, medicines, remarks,
+                photo_filename, session['doctor_username']
+            ))
+            conn.commit()
+            cur.close()
+            conn.close()
+            flash("Health log added successfully!", "success")
+            return redirect(url_for('view_logs', cattle_id=cattle_id))
 
-        flash("Checkup log added successfully.", "success")
-        return redirect(url_for('view_logs', cattle_id=cattle_id))
+        except Exception as e:
+            print("❌ Error inserting log:", e)
+            flash("Error adding health log. Please try again.", "danger")
 
-    today = datetime.today().strftime('%Y-%m-%d')
-    return render_template('add_log.html', cattle_id=cattle_id, today=today)
-
+    return render_template('add_log.html', cattle_id=cattle_id)
 
 # ==================================
-# 🔍 View Logs
+# 📄 View Logs
 # ==================================
 @app.route('/view_logs/<int:cattle_id>')
 def view_logs(cattle_id):
@@ -257,38 +255,18 @@ def view_logs(cattle_id):
         return redirect(url_for('login'))
 
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
+    cur = conn.cursor()
+    cur.execute("""
         SELECT checkup_date, diagnosis, medicines, remarks, photo, doctor_username
         FROM health_log
         WHERE cattle_id = %s
         ORDER BY checkup_date DESC
     """, (cattle_id,))
-    logs = cursor.fetchall()
-    cursor.close()
+    logs = cur.fetchall()
+    cur.close()
     conn.close()
 
     return render_template('view_logs.html', cattle_id=cattle_id, logs=logs)
-
-
-# ==================================
-# ❌ Delete Cattle
-# ==================================
-@app.route('/delete_cattle/<int:cattle_id>', methods=['POST'])
-def delete_cattle(cattle_id):
-    if 'doctor_username' not in session:
-        return redirect(url_for('login'))
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM cattle_info WHERE id = %s", (cattle_id,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    flash("Cattle record deleted.", "success")
-    return redirect(url_for('dashboard'))
-
 
 # ==================================
 # 🚀 Run
@@ -296,4 +274,3 @@ def delete_cattle(cattle_id):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
