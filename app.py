@@ -110,7 +110,11 @@ def home():
 def dashboard():
     if 'doctor_username' not in session:
         return redirect(url_for('login'))
-    return f"Welcome Dr. {session.get('doctor_username')}!"
+    return render_template(
+        'base.html',
+        username=session.get('doctor_username')
+    )
+
 
 # ==================================
 # 🚀 Run
