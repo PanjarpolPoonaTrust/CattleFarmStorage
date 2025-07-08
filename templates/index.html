@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h2>Dashboard</h2>
     <a href="{{ url_for('add_cattle') }}">Add Cattle</a> | 
     <a href="{{ url_for('logout') }}">Logout</a>
-
     <form method="POST">
-        <input type="text" name="searched" placeholder="Search by breed or color" value="{{ searched or '' }}">
+        <input type="text" name="searched" placeholder="Search cattle...">
         <button type="submit">Search</button>
     </form>
 
     {% if searched %}
-        <h3>Search results for "{{ searched }}"</h3>
+        <h3>Results for "{{ searched }}":</h3>
         {% if result %}
             <table border="1">
                 <tr>
@@ -26,6 +24,7 @@
                     <th>Age</th>
                     <th>Shed No</th>
                     <th>Photo</th>
+                    <th>Action</th>
                 </tr>
                 {% for row in result %}
                 <tr>
@@ -34,7 +33,18 @@
                     <td>{{ row[2] }}</td>
                     <td>{{ row[3] }}</td>
                     <td>{{ row[4] }}</td>
-                    <td><img src="{{ row[5] }}" width="50" height="50"></td>
+                    <td>
+                        {% if row[5] %}
+                            <img src="{{ row[5] }}" width="50">
+                        {% else %}
+                            No Image
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form action="{{ url_for('delete_cattle', cattle_id=row[0]) }}" method="post">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
