@@ -111,7 +111,7 @@ def dashboard():
     if 'doctor_username' not in session:
         return redirect(url_for('login'))
     return render_template(
-        'base.html',
+        'index.html',
         username=session.get('doctor_username')
     )
 
