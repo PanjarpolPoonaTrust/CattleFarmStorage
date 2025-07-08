@@ -35,7 +35,6 @@ def check_password_scrypt(stored_hash, password):
         print("Error in check_password_scrypt:", e)
         return False
 
-
 # ==================================
 # 🔌 Database Connection Helper
 # ==================================
@@ -64,7 +63,6 @@ def login():
 
         try:
             cursor = conn.cursor()
-            # ✅ Only selecting username and password now
             cursor.execute(
                 "SELECT username, password FROM doctors WHERE username = %s",
                 (username,)
@@ -104,17 +102,63 @@ def home():
     return redirect(url_for('login'))
 
 # ==================================
-# 📊 Dashboard
+# 📊 Dashboard (Search working!)
 # ==================================
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if 'doctor_username' not in session:
         return redirect(url_for('login'))
+
+    searched = False
+    result = []
+
+    if request.method == 'POST':
+        breed = request.form.get('breed', '').strip()
+        color = request.form.get('color', '').strip()
+        age = request.form.get('age', '').strip()
+        shed_no = request.form.get('shed_no', '').strip()
+
+        searched = True
+
+        query = "SELECT * FROM cattle WHERE 1=1"
+        params = []
+
+        if breed:
+            query += " AND breed ILIKE %s"
+            params.append(f"%{breed}%")
+
+        if color:
+            query += " AND color ILIKE %s"
+            params.append(f"%{color}%")
+
+        if age:
+            query += " AND age = %s"
+            params.append(age)
+
+        if shed_no:
+            query += " AND shed_no ILIKE %s"
+            params.append(f"%{shed_no}%")
+
+        conn = get_db_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                result = cursor.fetchall()
+                cursor.close()
+                conn.close()
+            except Exception as e:
+                print("❌ Error fetching cattle data:", e)
+                flash("Error retrieving cattle data.", "danger")
+        else:
+            flash("Database connection failed.", "danger")
+
     return render_template(
         'index.html',
-        username=session.get('doctor_username')
+        username=session.get('doctor_username'),
+        searched=searched,
+        result=result
     )
-
 
 # ==================================
 # 🚀 Run
