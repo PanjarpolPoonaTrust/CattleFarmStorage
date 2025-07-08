@@ -41,9 +41,8 @@
                         {% endif %}
                     </td>
                     <td>
-                        <form action="{{ url_for('delete_cattle', cattle_id=row[0]) }}" method="post">
-                            <button type="submit">Delete</button>
-                        </form>
+                        <!-- Delete feature disabled for now -->
+                        <span>Delete not implemented</span>
                     </td>
                 </tr>
                 {% endfor %}
