@@ -17,7 +17,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # ==============================
 def check_password_scrypt(stored_hash, password):
     try:
-        # Format: scrypt:<n>:<r>:<p>$<salt_b64>$<hash_hex>
         prefix, salt_b64, hash_hex = stored_hash.split('$')
         _, n, r, p = prefix.split(':')
         salt = base64.b64decode(salt_b64)
@@ -113,7 +112,7 @@ def dashboard():
     age = request.form.get('age')
     shed_no = request.form.get('shed_no')
 
-    query = "SELECT * FROM cattle WHERE 1=1"
+    query = "SELECT * FROM cattle_info WHERE 1=1"
     params = []
 
     if breed:
@@ -186,7 +185,7 @@ def add_cattle():
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO cattle (breed, color, age, shed_no, notes, photo1, photo2, photo3, photo4)
+                INSERT INTO cattle_info (breed, color, age, shed_no, notes, photo1, photo2, photo3, photo4)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (breed, color, age, shed_no, notes, *photos))
             conn.commit()
@@ -201,7 +200,7 @@ def add_cattle():
     return render_template('add_cattle.html')
 
 # ==============================
-# ➕ ADD CHECKUP LOG
+# ➕ ADD HEALTH LOG
 # ==============================
 @app.route('/add_log/<int:cattle_id>', methods=['GET', 'POST'])
 def add_log(cattle_id):
@@ -230,7 +229,7 @@ def add_log(cattle_id):
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO checkup_logs (cattle_id, checkup_date, diagnosis, medicines, remarks, photo, doctor)
+                INSERT INTO health_log (cattle_id, checkup_date, diagnosis, medicines, remarks, photo, doctor)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 cattle_id,
@@ -253,7 +252,7 @@ def add_log(cattle_id):
     return render_template('add_log.html', cattle_id=cattle_id, today=today)
 
 # ==============================
-# 🔎 VIEW CHECKUP LOGS
+# 🔎 VIEW HEALTH LOGS
 # ==============================
 @app.route('/view_logs/<int:cattle_id>')
 def view_logs(cattle_id):
@@ -270,7 +269,7 @@ def view_logs(cattle_id):
         cursor = conn.cursor()
         cursor.execute("""
             SELECT checkup_date, diagnosis, medicines, remarks, photo, doctor
-            FROM checkup_logs
+            FROM health_log
             WHERE cattle_id = %s
             ORDER BY checkup_date DESC
         """, (cattle_id,))
@@ -298,8 +297,8 @@ def delete_cattle(cattle_id):
 
     try:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM checkup_logs WHERE cattle_id = %s", (cattle_id,))
-        cursor.execute("DELETE FROM cattle WHERE id = %s", (cattle_id,))
+        cursor.execute("DELETE FROM health_log WHERE cattle_id = %s", (cattle_id,))
+        cursor.execute("DELETE FROM cattle_info WHERE id = %s", (cattle_id,))
         conn.commit()
         cursor.close()
         conn.close()
