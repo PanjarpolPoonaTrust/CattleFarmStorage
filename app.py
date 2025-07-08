@@ -136,6 +136,10 @@ def dashboard():
             params.append(f"%{shed_no}%")
 
         conn = get_db_connection()
+        if conn is None:
+            flash("Database connection error.", "danger")
+            return render_template('index.html', searched=False, result=[])
+
         cur = conn.cursor()
         cur.execute(query, params)
         result = cur.fetchall()
