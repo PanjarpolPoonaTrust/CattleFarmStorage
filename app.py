@@ -1,24 +1,29 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import psycopg2
 import psycopg2.extras
-import os
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
+app.secret_key = os.getenv("SECRET_KEY", "defaultsecret")
+
+# Database connection details
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_NAME = os.getenv("DB_NAME", "your_db_name")
+DB_USER = os.getenv("DB_USER", "your_db_user")
+DB_PASS = os.getenv("DB_PASS", "your_db_password")
 
 def get_db_connection():
     conn = psycopg2.connect(
-        host=os.environ.get("DB_HOST", "localhost"),
-        database=os.environ.get("DB_NAME", "yourdbname"),
-        user=os.environ.get("DB_USER", "yourdbuser"),
-        password=os.environ.get("DB_PASSWORD", "yourdbpassword"),
-        port=os.environ.get("DB_PORT", 5432)
+        host=DB_HOST,
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASS
     )
     return conn
 
-# ---------------------
-# Login Route
-# ---------------------
+@app.route("/")
+def home():
+    return redirect(url_for("login"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -27,69 +32,49 @@ def login():
         password = request.form["password"]
 
         conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT * FROM doctors WHERE username = %s AND password = %s",
-            (username, password)
-        )
+        cursor.execute("SELECT * FROM doctors WHERE username = %s AND password = %s", (username, password))
         doctor = cursor.fetchone()
+
+        cursor.close()
         conn.close()
 
         if doctor:
             session["logged_in"] = True
-            session["doctor_id"] = doctor["id"]
-            flash("Login successful!", "success")
+            session["username"] = username
             return redirect(url_for("dashboard"))
         else:
-            flash("Invalid credentials.", "danger")
+            flash("Invalid credentials. Please try again.", "danger")
 
     return render_template("login.html")
-
-# ---------------------
-# Dashboard Route
-# ---------------------
 
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    result = []
+    searched = None
 
     if request.method == "POST":
-        searched = request.form.get("searched", "")
-        query = """
+        searched = request.form["searched"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
             SELECT id, breed, color, age, shed_no, photo1
             FROM cattle_info
             WHERE breed ILIKE %s OR color ILIKE %s
-        """
-        cursor.execute(query, (f"%{searched}%", f"%{searched}%"))
+        """, (f"%{searched}%", f"%{searched}%"))
+
         result = cursor.fetchall()
+
+        cursor.close()
         conn.close()
-        return render_template(
-            "index.html",
-            searched=searched,
-            result=result
-        )
 
-    # GET request: show all cattle
-    cursor.execute("""
-        SELECT id, breed, color, age, shed_no, photo1
-        FROM cattle_info
-    """)
-    result = cursor.fetchall()
-    conn.close()
-    return render_template(
-        "index.html",
-        searched="",
-        result=result
-    )
-
-# ---------------------
-# Add Cattle Route
-# ---------------------
+    return render_template("index.html", searched=searched, result=result)
 
 @app.route("/add_cattle", methods=["GET", "POST"])
 def add_cattle():
@@ -105,25 +90,24 @@ def add_cattle():
 
         conn = get_db_connection()
         cursor = conn.cursor()
+
         cursor.execute("""
             INSERT INTO cattle_info (breed, color, age, shed_no, photo1)
             VALUES (%s, %s, %s, %s, %s)
         """, (breed, color, age, shed_no, photo1))
+
         conn.commit()
+        cursor.close()
         conn.close()
-        flash("Cattle added successfully.", "success")
+
+        flash("Cattle record added successfully.", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("add_cattle.html")
 
-# ---------------------
-# Logout Route
-# ---------------------
-
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("Logged out successfully.", "info")
     return redirect(url_for("login"))
 
 if __name__ == "__main__":
