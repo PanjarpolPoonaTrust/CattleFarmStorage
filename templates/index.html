@@ -1,55 +1,46 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <h2>Cattle Information</h2>
-    <form method="post" action="{{ url_for('dashboard') }}">
-        <div class="input-group mb-3">
-            <input type="text" class="form-control" name="search_term" placeholder="Search..." required>
-            <button class="btn btn-primary" type="submit">Search</button>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>Dashboard</h2>
+    <a href="{{ url_for('add_cattle') }}">Add Cattle</a> | 
+    <a href="{{ url_for('logout') }}">Logout</a>
+
+    <form method="POST">
+        <input type="text" name="searched" placeholder="Search by breed or color" value="{{ searched or '' }}">
+        <button type="submit">Search</button>
     </form>
 
-    <a href="{{ url_for('add_cattle') }}" class="btn btn-success mb-3">Add Cattle</a>
-
     {% if searched %}
-        <h5>Search Results:</h5>
+        <h3>Search results for "{{ searched }}"</h3>
+        {% if result %}
+            <table border="1">
+                <tr>
+                    <th>ID</th>
+                    <th>Breed</th>
+                    <th>Color</th>
+                    <th>Age</th>
+                    <th>Shed No</th>
+                    <th>Photo</th>
+                </tr>
+                {% for row in result %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td>{{ row[4] }}</td>
+                    <td><img src="{{ row[5] }}" width="50" height="50"></td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>No records found.</p>
+        {% endif %}
     {% endif %}
-
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Breed</th>
-                <th>Color</th>
-                <th>Age</th>
-                <th>Shed No</th>
-                <th>Photo</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in result %}
-            <tr>
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-                <td>{{ row[3] }}</td>
-                <td>{{ row[4] }}</td>
-                <td>
-                    {% if row[5] %}
-                        <img src="{{ url_for('static', filename='uploads/' ~ row[5]) }}" alt="Photo" style="width: 100px;">
-                    {% else %}
-                        No Photo
-                    {% endif %}
-                </td>
-                <td>
-                    <form action="{{ url_for('delete_cattle', id=row[0]) }}" method="post">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endblock %}
+</body>
+</html>
