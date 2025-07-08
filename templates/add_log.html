@@ -27,14 +27,13 @@
         </div>
         <div class="form-actions mt-3">
             <button type="submit" class="btn btn-primary">Add Log</button>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 {% endblock %}
 
 {% block scripts %}
     <script>
-        // Ensure the date field is populated if the browser doesn't support the value attribute for type="date"
         document.addEventListener("DOMContentLoaded", function() {
             var dateInput = document.getElementById('checkup_date');
             if (!dateInput.value) {
