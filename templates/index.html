@@ -1,61 +1,55 @@
 {% extends "base.html" %}
-
-{% block title %}Dashboard - Cattle Health System{% endblock %}
-
 {% block content %}
-    <h2>Cattle Dashboard</h2>
-
-    <form method="POST" class="form-inline mb-3">
-        <input type="text" name="searched" class="form-control mr-2" placeholder="Search breed, color, shed..." value="{{ searched or '' }}">
-        <button type="submit" class="btn btn-primary">Search</button>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ml-2">Clear</a>
-        <a href="{{ url_for('add_cattle') }}" class="btn btn-success ml-auto">
-            <i class="fas fa-plus"></i> Add Cattle
-        </a>
+<div class="container mt-4">
+    <h2>Cattle Information</h2>
+    <form method="post" action="{{ url_for('dashboard') }}">
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" name="search_term" placeholder="Search..." required>
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
     </form>
 
-    {% if result %}
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover">
-                <thead class="thead-light">
-                    <tr>
-                        <th>ID</th>
-                        <th>Breed</th>
-                        <th>Color</th>
-                        <th>Age</th>
-                        <th>Shed</th>
-                        <th>Photo</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in result %}
-                        <tr>
-                            <td>{{ row[0] }}</td>
-                            <td>{{ row[1] }}</td>
-                            <td>{{ row[2] }}</td>
-                            <td>{{ row[3] }}</td>
-                            <td>{{ row[4] }}</td>
-                            <td>
-                                {% if row[5] %}
-                                    <img src="{{ url_for('static', filename='uploads/' ~ row[5]) }}" width="80" class="rounded">
-                                {% else %}
-                                    No photo
-                                {% endif %}
-                            </td>
-                            <td>
-                                <form action="{{ url_for('delete_cattle', cattle_id=row[0]) }}" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this cattle?')">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p>No cattle found.</p>
+    <a href="{{ url_for('add_cattle') }}" class="btn btn-success mb-3">Add Cattle</a>
+
+    {% if searched %}
+        <h5>Search Results:</h5>
     {% endif %}
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Breed</th>
+                <th>Color</th>
+                <th>Age</th>
+                <th>Shed No</th>
+                <th>Photo</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in result %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td>
+                    {% if row[5] %}
+                        <img src="{{ url_for('static', filename='uploads/' ~ row[5]) }}" alt="Photo" style="width: 100px;">
+                    {% else %}
+                        No Photo
+                    {% endif %}
+                </td>
+                <td>
+                    <form action="{{ url_for('delete_cattle', id=row[0]) }}" method="post">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
