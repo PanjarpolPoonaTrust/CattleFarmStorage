@@ -213,55 +213,44 @@ def add_log(cattle_id):
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        checkup_date = request.form.get('checkup_date')
-        diagnosis = request.form.get('diagnosis')
-        medicines = request.form.get('medicines')
-        remarks = request.form.get('remarks')
+        date = request.form['checkup_date']
+        diagnosis = request.form['diagnosis']
+        medicines = request.form['medicines']
+        remarks = request.form.get('remarks', '')
+        photo_file = request.files['treatment_photo']
+        filename = ''
+        if photo_file and photo_file.filename != '':
+            filename = secure_filename(photo_file.filename)
+            photo_path = os.path.join('static/uploads', filename)
+            photo_file.save(photo_path)
+        
+        doctor = session['doctor_username']
 
-        treatment_photo = request.files.get('treatment_photo')
-        photo_filename = None
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO health_log (checkup_date, diagnosis, medicines, remarks, treatment_photo, cattle_id, doctor)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (date, diagnosis, medicines, remarks, filename, cattle_id, doctor))
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Checkup log added successfully.', 'success')
+        return redirect(url_for('view_logs', cattle_id=cattle_id))
 
-        if treatment_photo and treatment_photo.filename != '':
-            filename = secure_filename(treatment_photo.filename)
-            unique_filename = f"{uuid.uuid4().hex}_{filename}"
-            treatment_photo.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-            photo_filename = unique_filename
+    today = datetime.today().strftime('%Y-%m-%d')
+    return render_template('add_log.html', cattle_id=cattle_id, today=today)
 
-        try:
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO health_log
-                (cattle_id, checkup_date, diagnosis, medicines, remarks, photo, doctor_username)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                cattle_id, checkup_date, diagnosis, medicines, remarks,
-                photo_filename, session['doctor_username']
-            ))
-            conn.commit()
-            cur.close()
-            conn.close()
-            flash("Health log added successfully!", "success")
-            return redirect(url_for('view_logs', cattle_id=cattle_id))
-
-        except Exception as e:
-            print("❌ Error inserting log:", e)
-            flash("Error adding health log. Please try again.", "danger")
-
-    return render_template('add_log.html', cattle_id=cattle_id)
 
 # ==================================
 # 📄 View Logs
 # ==================================
 @app.route('/view_logs/<int:cattle_id>')
 def view_logs(cattle_id):
-    if 'doctor_username' not in session:
-        return redirect(url_for('login'))
-
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT checkup_date, diagnosis, medicines, remarks, photo, doctor_username
+        SELECT checkup_date, diagnosis, medicines, remarks, treatment_photo, doctor
         FROM health_log
         WHERE cattle_id = %s
         ORDER BY checkup_date DESC
@@ -269,8 +258,8 @@ def view_logs(cattle_id):
     logs = cur.fetchall()
     cur.close()
     conn.close()
+    return render_template('view_logs.html', logs=logs, cattle_id=cattle_id)
 
-    return render_template('view_logs.html', cattle_id=cattle_id, logs=logs)
 
 # ==================================
 # 🚀 Run
