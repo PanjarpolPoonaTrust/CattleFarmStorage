@@ -5,10 +5,14 @@ import hashlib
 import base64
 import uuid
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.secret_key = os.environ.get("SECRET_KEY", "temporary-secret-key")
+app.secret_key = os.environ.get("SECRET_KEY", "temporary-secret-key-change-in-production")
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -41,8 +45,20 @@ def check_password_scrypt(stored_hash, password):
 # ==================================
 def get_db_connection():
     try:
-        db_url = os.environ['DATABASE_URL']
-        conn = psycopg2.connect(db_url)
+        # For Render deployment, use DATABASE_URL
+        # For local development, you can use individual Supabase credentials
+        if os.environ.get('DATABASE_URL'):
+            # Render deployment
+            conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        else:
+            # Local development with Supabase
+            conn = psycopg2.connect(
+                host=os.environ.get('SUPABASE_HOST', 'db.sklrifdmdyzofielkvsj.supabase.co'),
+                database=os.environ.get('SUPABASE_DB', 'postgres'),
+                user=os.environ.get('SUPABASE_USER', 'postgres'),
+                password=os.environ.get('SUPABASE_PASSWORD', ''),
+                port=os.environ.get('SUPABASE_PORT', '5432')
+            )
         return conn
     except Exception as e:
         print("❌ Database connection failed:", e)
@@ -140,13 +156,17 @@ def dashboard():
             flash("Database connection error.", "danger")
             return render_template('index.html', searched=False, result=[])
 
-        cur = conn.cursor()
-        cur.execute(query, params)
-        result = cur.fetchall()
-        cur.close()
-        conn.close()
-
-        searched = True
+        try:
+            cur = conn.cursor()
+            cur.execute(query, params)
+            result = cur.fetchall()
+            cur.close()
+            conn.close()
+            searched = True
+        except Exception as e:
+            print("❌ Error during search:", e)
+            flash("Error searching cattle records.", "danger")
+            conn.close()
 
     return render_template(
         'index.html',
@@ -259,16 +279,26 @@ def view_logs(cattle_id):
         return redirect(url_for('login'))
 
     conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT checkup_date, diagnosis, medicines, remarks, photo, doctor_username
-        FROM health_log
-        WHERE cattle_id = %s
-        ORDER BY checkup_date DESC
-    """, (cattle_id,))
-    logs = cur.fetchall()
-    cur.close()
-    conn.close()
+    if conn is None:
+        flash("Database connection error.", "danger")
+        return redirect(url_for('dashboard'))
+
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT checkup_date, diagnosis, medicines, remarks, photo, doctor_username
+            FROM health_log
+            WHERE cattle_id = %s
+            ORDER BY checkup_date DESC
+        """, (cattle_id,))
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print("❌ Error fetching logs:", e)
+        flash("Error fetching health logs.", "danger")
+        conn.close()
+        return redirect(url_for('dashboard'))
 
     return render_template('view_logs.html', cattle_id=cattle_id, logs=logs)
 
@@ -277,4 +307,4 @@ def view_logs(cattle_id):
 # ==================================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
