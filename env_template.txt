@@ -1,0 +1,16 @@
+# Environment Variables for Cattle Farm Storage
+# Copy this file to .env and fill in your values
+
+# Flask Secret Key (generate a strong one for production)
+SECRET_KEY=your-super-secret-key-here
+
+# Supabase Database Configuration
+# Get these from your Supabase project settings
+SUPABASE_HOST=db.sklrifdmdyzofielkvsj.supabase.co
+SUPABASE_DB=postgres
+SUPABASE_USER=postgres
+SUPABASE_PASSWORD=your-supabase-password-here
+SUPABASE_PORT=5432
+
+# For Render deployment, use DATABASE_URL instead
+# DATABASE_URL=postgresql://username:password@host:port/database 
