@@ -265,6 +265,17 @@ def view_logs(cattle_id):
     conn.close()
     return render_template('view_logs.html', logs=logs, cattle_id=cattle_id)
 
+@app.route('/delete_cattle/<int:cattle_id>')
+def delete_cattle(cattle_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM cattle_info WHERE id = ?', (cattle_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('dashboard'))
+
+
+
+
 
 # ==================================
 # 🚀 Run
