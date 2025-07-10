@@ -275,6 +275,12 @@ def delete_cattle(cattle_id):
     conn.close()
     return redirect(url_for('dashboard'))
 
+@app.route('/push_to_git')
+def push_to_git():
+    subprocess.run(['git', 'add', 'static/uploads'])
+    subprocess.run(['git', 'commit', '-m', 'Auto-push new uploads'])
+    subprocess.run(['git', 'push'])
+    return "Pushed to GitHub!"
 
 
 
