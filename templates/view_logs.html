@@ -1,30 +1,55 @@
-<thead class="thead-light">
-    <tr>
-        <th>Date</th>
-        <th>Diagnosis</th>
-        <th>Medicines</th>
-        <th>Remarks</th>
-        <th>Photo</th>
-        <th>Doctor</th>
-    </tr>
-</thead>
-<tbody>
-    {% for log in logs %}
-    <tr>
-        <td>{{ log[0] }}</td>
-        <td>{{ log[1] }}</td>
-        <td>{{ log[2] }}</td>
-        <td>{{ log[3] }}</td>
-        <td>
-            {% if log[4] %}
-                <a href="{{ url_for('static', filename='uploads/' + log[4]) }}" data-lightbox="log-{{ log[0] }}" data-title="Checkup on {{ log[0] }} by Dr. {{ log[5] }}">
-                    <img src="{{ url_for('static', filename='uploads/' + log[4]) }}" width="80" class="cattle-photo rounded">
-                </a>
-            {% else %}
-                No Photo
-            {% endif %}
-        </td>
-        <td>{{ log[5] }}</td>
-    </tr>
-    {% endfor %}
-</tbody>
+{% extends "base.html" %}
+
+{% block title %}Checkup Logs - Cattle Health System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4">Checkup Logs for Cattle ID {{ cattle_id }}</h2>
+
+    {% if logs %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover shadow-sm bg-white rounded">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Diagnosis</th>
+                        <th>Medicines</th>
+                        <th>Remarks</th>
+                        <th>Photo</th>
+                        <th>Doctor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log[0] }}</td>
+                        <td>{{ log[1] }}</td>
+                        <td>{{ log[2] }}</td>
+                        <td>{{ log[3] }}</td>
+                        <td>
+                            {% if log[4] %}
+                                <a href="{{ url_for('static', filename='uploads/' + log[4]) }}" target="_blank">
+                                    <img src="{{ url_for('static', filename='uploads/' + log[4]) }}" width="80" class="img-thumbnail">
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No Photo</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ log[5] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            No checkup logs found for this cattle.
+        </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('add_log', cattle_id=cattle_id) }}" class="btn btn-primary">Add New Log</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
