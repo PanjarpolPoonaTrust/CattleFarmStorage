@@ -5,6 +5,7 @@ import hashlib
 import base64
 import uuid
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -217,13 +218,17 @@ def add_log(cattle_id):
         diagnosis = request.form['diagnosis']
         medicines = request.form['medicines']
         remarks = request.form.get('remarks', '')
-        photo_file = request.files['treatment_photo']
+
+        # ✅ Safely get treatment photo
+        photo_file = request.files.get('treatment_photo')
         filename = ''
         if photo_file and photo_file.filename != '':
             filename = secure_filename(photo_file.filename)
-            photo_path = os.path.join('static/uploads', filename)
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            photo_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             photo_file.save(photo_path)
-        
+            filename = unique_filename  # Save the unique name
+
         doctor = session['doctor_username']
 
         conn = get_db_connection()
