@@ -268,10 +268,13 @@ def view_logs(cattle_id):
 @app.route('/delete_cattle/<int:cattle_id>')
 def delete_cattle(cattle_id):
     conn = get_db_connection()
-    conn.execute('DELETE FROM cattle_info WHERE id = ?', (cattle_id,))
+    cur = conn.cursor()
+    cur.execute('DELETE FROM cattle_info WHERE id = %s', (cattle_id,))
     conn.commit()
+    cur.close()
     conn.close()
     return redirect(url_for('dashboard'))
+
 
 
 
