@@ -251,7 +251,7 @@ def view_logs(cattle_id):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT checkup_date, diagnosis, medicines, remarks, treatment_photo, doctor
+        SELECT checkup_date, diagnosis, medicines, remarks, treatment_photo_data, doctor
         FROM health_log
         WHERE cattle_id = %s
         ORDER BY checkup_date DESC
@@ -260,6 +260,7 @@ def view_logs(cattle_id):
     cur.close()
     conn.close()
     return render_template('view_logs.html', logs=logs, cattle_id=cattle_id)
+
 
 @app.route('/delete_cattle/<int:cattle_id>')
 def delete_cattle(cattle_id):
