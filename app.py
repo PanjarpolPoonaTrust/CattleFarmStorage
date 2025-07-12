@@ -120,7 +120,7 @@ def dashboard():
         age = request.form.get('age')
         shed_no = request.form.get('shed_no')
 
-        query = "SELECT * FROM cattle_info WHERE 1=1"
+        query = "SELECT id, breed, color, age, shed_no, photo1_data, photo2_data, photo3_data, photo4_data FROM cattle_info WHERE 1=1"
         params = []
 
         if breed:
@@ -137,23 +137,14 @@ def dashboard():
             params.append(f"%{shed_no}%")
 
         conn = get_db_connection()
-        if conn is None:
-            flash("Database connection error.", "danger")
-            return render_template('index.html', searched=False, result=[])
-
         cur = conn.cursor()
         cur.execute(query, params)
         result = cur.fetchall()
         cur.close()
         conn.close()
-
         searched = True
 
-    return render_template(
-        'index.html',
-        searched=searched,
-        result=result
-    )
+    return render_template("index.html", searched=searched, result=result)
 
 # ==================================
 # ➕ Add Cattle
@@ -170,40 +161,32 @@ def add_cattle():
         shed_no = request.form.get('shed_no')
         notes = request.form.get('notes')
 
-        photo_filenames = []
+        photo_blobs = []
         for field in ['photo1', 'photo2', 'photo3', 'photo4']:
-            photo = request.files.get(field)
-            if photo and photo.filename != '':
-                filename = secure_filename(photo.filename)
-                unique_filename = f"{uuid.uuid4().hex}_{filename}"
-                photo.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-                photo_filenames.append(unique_filename)
-            else:
-                photo_filenames.append(None)
+            file = request.files.get(field)
+            photo_blobs.append(file.read() if file and file.filename != '' else None)
 
         try:
             conn = get_db_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO cattle_info
-                (breed, color, age, shed_no, notes, photo1, photo2, photo3, photo4)
+                INSERT INTO cattle_info (breed, color, age, shed_no, notes, 
+                photo1_data, photo2_data, photo3_data, photo4_data)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                breed, color, age, shed_no, notes,
-                photo_filenames[0], photo_filenames[1],
-                photo_filenames[2], photo_filenames[3]
-            ))
+            """, (breed, color, age, shed_no, notes,
+                  photo_blobs[0], photo_blobs[1], photo_blobs[2], photo_blobs[3]))
             conn.commit()
             cur.close()
             conn.close()
-            flash("Cattle record added successfully!", "success")
+            flash("Cattle added successfully!", "success")
             return redirect(url_for('dashboard'))
 
         except Exception as e:
-            print("❌ Error inserting cattle:", e)
-            flash("Error adding cattle. Please try again.", "danger")
+            print("Error inserting cattle:", e)
+            flash("Error adding cattle.", "danger")
 
     return render_template('add_cattle.html')
+
 
 # ==================================
 # ➕ Add Health Log
