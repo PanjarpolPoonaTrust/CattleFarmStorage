@@ -271,12 +271,10 @@ def delete_cattle(cattle_id):
     conn.close()
     return redirect(url_for('dashboard'))
 
-@app.route('/push_to_git')
-def push_to_git():
-    subprocess.run(['git', 'add', 'static/uploads'])
-    subprocess.run(['git', 'commit', '-m', 'Auto-push new uploads'])
-    subprocess.run(['git', 'push'])
-    return "Pushed to GitHub!"
+@app.template_filter('b64encode')
+def b64encode_filter(data):
+    import base64
+    return base64.b64encode(data).decode('utf-8') if data else ''
 
 
 
