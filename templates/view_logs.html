@@ -1,31 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Health Logs{% endblock %}
 {% block content %}
-
 <div class="container my-4">
-  <h2>Health Logs for Cattle ID: {{ cattle_id }}</h2>
-
-  {% if logs %}
-    {% for log in logs %}
-    <div class="card mb-4 shadow-sm">
-      <div class="card-body">
-        <p><strong>Checkup Date:</strong> {{ log[0] }}</p>
-        <p><strong>Diagnosis:</strong> {{ log[1] }}</p>
-        <p><strong>Medicines:</strong> {{ log[2] }}</p>
-        <p><strong>Remarks:</strong> {{ log[3] }}</p>
-        <p><strong>Doctor:</strong> {{ log[5] }}</p>
-
-        {% if log[4] %}
-          <img src="data:image/jpeg;base64,{{ log[4]|b64encode }}" class="img-thumbnail mt-2" style="max-width: 300px;" />
-        {% else %}
-          <p><em>No photo uploaded.</em></p>
-        {% endif %}
-      </div>
-    </div>
-    {% endfor %}
-  {% else %}
-    <div class="alert alert-warning">No logs available for this cattle.</div>
-  {% endif %}
+    <h3>Health Logs</h3>
+    {% if logs %}
+        {% for log in logs %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <p><strong>Date:</strong> {{ log[0] }}</p>
+                <p><strong>Diagnosis:</strong> {{ log[1] }}</p>
+                <p><strong>Medicines:</strong> {{ log[2] }}</p>
+                <p><strong>Remarks:</strong> {{ log[3] }}</p>
+                <p><strong>Doctor:</strong> {{ log[5] }}</p>
+                {% if log[4] %}
+                    <img src="data:image/jpeg;base64,{{ log[4]|b64encode }}" class="img-thumbnail" style="max-width: 250px;">
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning">No health logs found for this cattle.</div>
+    {% endif %}
 </div>
-
 {% endblock %}
