@@ -1,55 +1,31 @@
 {% extends "base.html" %}
-
-{% block title %}Checkup Logs - Cattle Health System{% endblock %}
-
+{% block title %}Health Logs{% endblock %}
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4">Checkup Logs for Cattle ID {{ cattle_id }}</h2>
 
-    {% if logs %}
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover shadow-sm bg-white rounded">
-                <thead class="thead-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Diagnosis</th>
-                        <th>Medicines</th>
-                        <th>Remarks</th>
-                        <th>Photo</th>
-                        <th>Doctor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td>{{ log[0] }}</td>
-                        <td>{{ log[1] }}</td>
-                        <td>{{ log[2] }}</td>
-                        <td>{{ log[3] }}</td>
-                        <td>
-                            {% if log[4] %}
-                                <a href="{{ url_for('static', filename='uploads/' + log[4]) }}" target="_blank">
-                                    <img src="{{ url_for('static', filename='uploads/' + log[4]) }}" width="80" class="img-thumbnail">
-                                </a>
-                            {% else %}
-                                <span class="text-muted">No Photo</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ log[5] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div class="alert alert-info text-center">
-            No checkup logs found for this cattle.
-        </div>
-    {% endif %}
+<div class="container my-4">
+  <h2>Health Logs for Cattle ID: {{ cattle_id }}</h2>
 
-    <div class="mt-4">
-        <a href="{{ url_for('add_log', cattle_id=cattle_id) }}" class="btn btn-primary">Add New Log</a>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+  {% if logs %}
+    {% for log in logs %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <p><strong>Checkup Date:</strong> {{ log[0] }}</p>
+        <p><strong>Diagnosis:</strong> {{ log[1] }}</p>
+        <p><strong>Medicines:</strong> {{ log[2] }}</p>
+        <p><strong>Remarks:</strong> {{ log[3] }}</p>
+        <p><strong>Doctor:</strong> {{ log[5] }}</p>
+
+        {% if log[4] %}
+          <img src="data:image/jpeg;base64,{{ log[4]|b64encode }}" class="img-thumbnail mt-2" style="max-width: 300px;" />
+        {% else %}
+          <p><em>No photo uploaded.</em></p>
+        {% endif %}
+      </div>
     </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-warning">No logs available for this cattle.</div>
+  {% endif %}
 </div>
+
 {% endblock %}
