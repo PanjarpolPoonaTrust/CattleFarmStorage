@@ -30,21 +30,27 @@
         <nav class="navbar navbar-expand-lg navbar-light bg-white card-layout my-4">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url_for('dashboard') }}">🐄 Poona Panjarpol Gaushala</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <i class="fas fa-user-circle fa-lg"></i>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ml-auto">
+                        {% if session.get('doctor_username') %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fa-solid fa-user-md d-none d-lg-inline-block"></i>
                                 <span class="d-lg-none">Dr. {{ session['doctor_username'] }}</span>
                                 <span class="d-none d-lg-inline-block">Dr. {{ session['doctor_username'] }}</span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-                                <a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+                                <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                                </a>
                             </div>
                         </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
@@ -77,4 +83,4 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
     {% block scripts %}{% endblock %}
 </body>
-</html> 
+</html>
