@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Cattle Health System{% endblock %}</title>
-    
+
     <!-- CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,7 +19,7 @@
         }
         @media (max-width: 767.98px) {
             .navbar-brand {
-                font-size: 1rem; /* Smaller font size on mobile */
+                font-size: 1rem;
             }
         }
     </style>
@@ -27,6 +27,9 @@
 </head>
 <body>
     <div class="container">
+
+        {# Hide navbar on login page #}
+        {% if request.endpoint != 'login' %}
         <nav class="navbar navbar-expand-lg navbar-light bg-white card-layout my-4">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url_for('dashboard') }}">🐄 Poona Panjarpol Gaushala</a>
@@ -55,6 +58,7 @@
                 </div>
             </div>
         </nav>
+        {% endif %}
 
         <div class="card card-layout">
             <div class="card-body">
@@ -70,7 +74,7 @@
                         {% endfor %}
                     {% endif %}
                 {% endwith %}
-                
+
                 {% block content %}{% endblock %}
             </div>
         </div>
