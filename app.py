@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-import psycopg2
+import psycopg2 # type: ignore
 import os
 import hashlib
 import base64
@@ -115,14 +115,18 @@ def dashboard():
     result = []
 
     if request.method == 'POST':
+        tag_number = request.form.get('tag_number')
         breed = request.form.get('breed')
         color = request.form.get('color')
         age = request.form.get('age')
         shed_no = request.form.get('shed_no')
 
-        query = "SELECT id, breed, color, age, shed_no, photo1_data, photo2_data, photo3_data, photo4_data FROM cattle_info WHERE 1=1"
+        query = "SELECT id, tag_number, breed, color, age, shed_no, photo1_data, photo2_data, photo3_data, photo4_data FROM cattle_info WHERE 1=1"
         params = []
 
+        if tag_number:
+            query += " AND tag_number ILIKE %s"
+            params.append(f"%{tag_number}%")
         if breed:
             query += " AND breed ILIKE %s"
             params.append(f"%{breed}%")
@@ -155,6 +159,7 @@ def add_cattle():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
+        tag_number = request.form.get('tag_number')
         breed = request.form.get('breed')
         color = request.form.get('color')
         age = request.form.get('age')
@@ -170,10 +175,10 @@ def add_cattle():
             conn = get_db_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO cattle_info (breed, color, age, shed_no, notes, 
+                INSERT INTO cattle_info (tag_number, breed, color, age, shed_no, notes, 
                 photo1_data, photo2_data, photo3_data, photo4_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (breed, color, age, shed_no, notes,
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (tag_number, breed, color, age, shed_no, notes,
                   photo_blobs[0], photo_blobs[1], photo_blobs[2], photo_blobs[3]))
             conn.commit()
             cur.close()
