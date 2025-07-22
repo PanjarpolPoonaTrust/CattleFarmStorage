@@ -11,6 +11,7 @@
         <input type="text" name="color" placeholder="Color" class="form-control mr-2" value="{{ request.form.get('color', '') }}">
         <input type="number" name="age" placeholder="Age" class="form-control mr-2" value="{{ request.form.get('age', '') }}">
         <input type="text" name="shed_no" placeholder="Shed No" class="form-control mr-2" value="{{ request.form.get('shed_no', '') }}">
+        <input type="text" name="tag_no" placeholder="Tag No" class="form-control mr-2" value="{{ request.form.get('tag_no', '') }}">
         <select name="gender" class="form-control mr-2">
             <option value="">All Genders</option>
             <option value="Male" {% if request.form.get('gender') == 'Male' %}selected{% endif %}>Male</option>
@@ -32,7 +33,8 @@
                     <p><strong>Color:</strong> {{ cattle[2] }}</p>
                     <p><strong>Age:</strong> {{ cattle[3] }}</p>
                     <p><strong>Shed No.:</strong> {{ cattle[4] }}</p>
-                    <p><strong>Gender:</strong> {{ cattle[5] }}</p>
+                    <p><strong>Gender:</strong> {{ cattle[10] }}</p>
+                    <p><strong>Tag No:</strong> {{ cattle[11] }}</p>
                 </div>
                 <div class="d-flex flex-column align-items-center">
                     {% for i in range(6, 10) %}
