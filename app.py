@@ -107,7 +107,7 @@ def dashboard():
             params.append(f"%{shed_no}%")
         if tag_no:
             query += " AND tag_no ILIKE %s"
-             params.append(f"%{tag_no}%")
+            params.append(f"%{tag_no}%")
         if gender:
             query += " AND gender = %s"
             params.append(gender)
