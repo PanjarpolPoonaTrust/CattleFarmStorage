@@ -1,183 +1,223 @@
+# ... existing imports ...
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import psycopg2
 import os
+import hashlib
 import base64
+import uuid
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "temporary-secret-key")
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.secret_key = os.environ.get("SECRET_KEY", "temporary-secret-key")
+
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+def check_password_scrypt(stored_hash, password):
+    try:
+        prefix, salt_b64, hash_hex = stored_hash.split('$')
+        _, n, r, p = prefix.split(':')
+        salt = base64.b64decode(salt_b64)
+        expected_hash = bytes.fromhex(hash_hex)
+        new_hash = hashlib.scrypt(password.encode('utf-8'), salt=salt,
+                                  n=int(n), r=int(r), p=int(p), dklen=64)
+        return new_hash == expected_hash
+    except Exception as e:
+        print("Error in check_password_scrypt:", e)
+        return False
+
 def get_db_connection():
-    return psycopg2.connect(
-        host=os.environ.get("DB_HOST"),
-        database=os.environ.get("DB_NAME"),
-        user=os.environ.get("DB_USER"),
-        password=os.environ.get("DB_PASSWORD")
-    )
+    try:
+        db_url = os.environ['DATABASE_URL']
+        return psycopg2.connect(db_url)
+    except Exception as e:
+        print("❌ Database connection failed:", e)
+        return None
 
-def convert_image_to_binary(file):
-    if file and file.filename:
-        return file.read()
-    return None
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
 
-@app.template_filter('b64encode')
-def b64encode_filter(data):
-    if data:
-        return base64.b64encode(data).decode('utf-8')
-    return ''
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        conn = get_db_connection()
+        if conn is None:
+            flash("Database error.", "danger")
+            return render_template('login.html')
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT username, password FROM doctors WHERE username = %s", (username,))
+            doctor = cur.fetchone()
+            cur.close()
+            conn.close()
+            if doctor and check_password_scrypt(doctor[1], password):
+                session['doctor_username'] = doctor[0]
+                flash("Login successful!", "success")
+                return redirect(url_for('dashboard'))
+            else:
+                flash("Invalid credentials.", "danger")
+        except Exception as e:
+            print("Login error:", e)
+            flash("Internal error.", "danger")
+    return render_template('login.html')
 
-@app.route("/", methods=["GET", "POST"])
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("Logged out.", "info")
+    return redirect(url_for('login'))
+
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
+    if 'doctor_username' not in session:
+        return redirect(url_for('login'))
+
     searched = False
     result = []
 
-    if request.method == "POST":
-        searched = True
-        breed = request.form.get("breed", "").strip()
-        color = request.form.get("color", "").strip()
-        age = request.form.get("age", "").strip()
-        shed_no = request.form.get("shed_no", "").strip()
-        gender = request.form.get("gender", "").strip()
-        tag_no = request.form.get("tag_no", "").strip()
+    if request.method == 'POST':
+        breed = request.form.get('breed')
+        color = request.form.get('color')
+        age = request.form.get('age')
+        shed_no = request.form.get('shed_no')
+        gender = request.form.get('gender')
 
-        query = "SELECT * FROM cattle_info WHERE 1=1"
-        values = []
-
+        query = """
+            SELECT id, breed, color, age, shed_no, gender, 
+                   photo1_data, photo2_data, photo3_data, photo4_data 
+            FROM cattle_info WHERE 1=1
+        """
+        params = []
         if breed:
             query += " AND breed ILIKE %s"
-            values.append(f"%{breed}%")
+            params.append(f"%{breed}%")
         if color:
             query += " AND color ILIKE %s"
-            values.append(f"%{color}%")
+            params.append(f"%{color}%")
         if age:
             query += " AND age = %s"
-            values.append(age)
+            params.append(age)
         if shed_no:
             query += " AND shed_no ILIKE %s"
-            values.append(f"%{shed_no}%")
+            params.append(f"%{shed_no}%")
         if gender:
             query += " AND gender = %s"
-            values.append(gender)
-        if tag_no:
-            query += " AND tag_no ILIKE %s"
-            values.append(f"%{tag_no}%")
+            params.append(gender)
 
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute(query, values)
+        cur.execute(query, params)
         result = cur.fetchall()
         cur.close()
         conn.close()
+        searched = True
 
-    return render_template("index.html", result=result, searched=searched)
+    return render_template("index.html", searched=searched, result=result)
 
-@app.route("/add_cattle", methods=["GET", "POST"])
+@app.route('/add_cattle', methods=['GET', 'POST'])
 def add_cattle():
-    if request.method == "POST":
-        breed = request.form["breed"]
-        color = request.form["color"]
-        age = request.form["age"]
-        shed_no = request.form["shed_no"]
-        gender = request.form["gender"]
-        notes = request.form["notes"]
-        tag_no = request.form["tag_no"]
+    if 'doctor_username' not in session:
+        return redirect(url_for('login'))
 
-        photos = [convert_image_to_binary(request.files.get(f"photo{i}")) for i in range(1, 5)]
+    if request.method == 'POST':
+        breed = request.form.get('breed')
+        color = request.form.get('color')
+        age = request.form.get('age')
+        shed_no = request.form.get('shed_no')
+        notes = request.form.get('notes')
+        gender = request.form.get('gender')
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO cattle_info (breed, color, age, shed_no, notes, photo1, photo2, photo3, photo4, gender, tag_no)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (breed, color, age, shed_no, notes, *photos, gender, tag_no))
-        conn.commit()
-        cur.close()
-        conn.close()
-        flash("Cattle added successfully!", "success")
-        return redirect(url_for("dashboard"))
+        photo_blobs = []
+        for field in ['photo1', 'photo2', 'photo3', 'photo4']:
+            file = request.files.get(field)
+            photo_blobs.append(file.read() if file and file.filename != '' else None)
 
-    return render_template("add_cattle.html")
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO cattle_info (
+                    breed, color, age, shed_no, notes, gender,
+                    photo1_data, photo2_data, photo3_data, photo4_data
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (breed, color, age, shed_no, notes, gender,
+                  photo_blobs[0], photo_blobs[1], photo_blobs[2], photo_blobs[3]))
+            conn.commit()
+            cur.close()
+            conn.close()
+            flash("Cattle added successfully!", "success")
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            print("Error inserting cattle:", e)
+            flash("Error adding cattle.", "danger")
 
-@app.route("/delete_cattle/<int:cattle_id>")
-def delete_cattle(cattle_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM cattle_info WHERE id = %s", (cattle_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    flash("Cattle deleted successfully!", "success")
-    return redirect(url_for("dashboard"))
+    return render_template('add_cattle.html')
 
-@app.route("/add_log/<int:cattle_id>", methods=["GET", "POST"])
+@app.route('/add_log/<int:cattle_id>', methods=['GET', 'POST'])
 def add_log(cattle_id):
-    if "doctor" not in session:
-        return redirect(url_for("login"))
+    if 'doctor_username' not in session:
+        return redirect(url_for('login'))
 
-    if request.method == "POST":
-        checkup_date = request.form["checkup_date"]
-        diagnosis = request.form["diagnosis"]
-        medicines = request.form["medicines"]
-        remarks = request.form["remarks"]
-        doctor = session["doctor"]
-
-        treatment_photo = convert_image_to_binary(request.files.get("treatment_photo"))
+    if request.method == 'POST':
+        date = request.form['checkup_date']
+        diagnosis = request.form['diagnosis']
+        medicines = request.form['medicines']
+        remarks = request.form.get('remarks', '')
+        doctor = session['doctor_username']
+        photo_file = request.files.get('treatment_photo')
+        photo_data = photo_file.read() if photo_file and photo_file.filename != '' else None
 
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO health_log (checkup_date, diagnosis, medicines, remarks, treatment_photo, cattle_id, doctor)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (checkup_date, diagnosis, medicines, remarks, treatment_photo, cattle_id, doctor))
+            INSERT INTO health_log (
+                checkup_date, diagnosis, medicines, remarks,
+                treatment_photo_data, cattle_id, doctor
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (date, diagnosis, medicines, remarks, photo_data, cattle_id, doctor))
         conn.commit()
         cur.close()
         conn.close()
-        flash("Health log added successfully!", "success")
-        return redirect(url_for("dashboard"))
 
-    return render_template("add_log.html", cattle_id=cattle_id)
+        flash('Checkup log added successfully.', 'success')
+        return redirect(url_for('view_logs', cattle_id=cattle_id))
 
-@app.route("/view_logs/<int:cattle_id>")
+    today = datetime.today().strftime('%Y-%m-%d')
+    return render_template('add_log.html', cattle_id=cattle_id, today=today)
+
+@app.route('/view_logs/<int:cattle_id>')
 def view_logs(cattle_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM health_log WHERE cattle_id = %s ORDER BY checkup_date DESC", (cattle_id,))
+    cur.execute("""
+        SELECT checkup_date, diagnosis, medicines, remarks, treatment_photo_data, doctor
+        FROM health_log
+        WHERE cattle_id = %s
+        ORDER BY checkup_date DESC
+    """, (cattle_id,))
     logs = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template("view_logs.html", logs=logs)
+    return render_template('view_logs.html', logs=logs, cattle_id=cattle_id)
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+@app.route('/delete_cattle/<int:cattle_id>')
+def delete_cattle(cattle_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM cattle_info WHERE id = %s', (cattle_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(url_for('dashboard'))
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM doctors WHERE username = %s AND password = %s", (username, password))
-        doctor = cur.fetchone()
-        cur.close()
-        conn.close()
+@app.template_filter('b64encode')
+def b64encode_filter(data):
+    return base64.b64encode(data).decode('utf-8') if data else ''
 
-        if doctor:
-            session["doctor"] = username
-            return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid credentials", "danger")
-
-    return render_template("login.html")
-
-@app.route("/logout")
-def logout():
-    session.pop("doctor", None)
-    flash("Logged out successfully", "info")
-    return redirect(url_for("login"))
-
-# ✅ Render-compatible entrypoint
-if __name__ == "__main__":
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
