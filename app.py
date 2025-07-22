@@ -85,6 +85,8 @@ def dashboard():
         age = request.form.get('age')
         shed_no = request.form.get('shed_no')
         gender = request.form.get('gender')
+        tag_no = request.form.get('tag_no')
+
 
         query = """
             SELECT id, breed, color, age, shed_no, gender, 
@@ -107,6 +109,10 @@ def dashboard():
         if gender:
             query += " AND gender = %s"
             params.append(gender)
+        if tag_no:
+            query += " AND tag_no ILIKE %s"
+            params.append(f"%{tag_no}%")
+
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -130,6 +136,8 @@ def add_cattle():
         shed_no = request.form.get('shed_no')
         notes = request.form.get('notes')
         gender = request.form.get('gender')
+        tag_no = request.form.get('tag_no')
+
 
         photo_blobs = []
         for field in ['photo1', 'photo2', 'photo3', 'photo4']:
@@ -141,11 +149,12 @@ def add_cattle():
             cur = conn.cursor()
             cur.execute("""
                 INSERT INTO cattle_info (
-                    breed, color, age, shed_no, notes, gender,
+                    breed, color, age, shed_no, notes, gender, tag_no,
                     photo1_data, photo2_data, photo3_data, photo4_data
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (breed, color, age, shed_no, notes, gender,
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (breed, color, age, shed_no, notes, gender, tag_no,
                   photo_blobs[0], photo_blobs[1], photo_blobs[2], photo_blobs[3]))
+
             conn.commit()
             cur.close()
             conn.close()
