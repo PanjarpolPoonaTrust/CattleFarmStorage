@@ -73,11 +73,14 @@ def logout():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    if 'doctor_username' not in session:
+    if 'username' not in session:
         return redirect(url_for('login'))
 
-    searched = False
-    result = []
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    query = "SELECT id, breed, color, age, shed_no, gender, tag_no, photo1, photo2, photo3, photo4 FROM cattle_info WHERE 1=1"
+    params = []
 
     if request.method == 'POST':
         breed = request.form.get('breed')
@@ -85,15 +88,8 @@ def dashboard():
         age = request.form.get('age')
         shed_no = request.form.get('shed_no')
         gender = request.form.get('gender')
-        tag_no = request.form.get('tag_no')
+        tag_no = request.form.get('tag_no')  # New field
 
-
-        query = """
-            SELECT id, breed, color, age, shed_no, gender, 
-                   photo1_data, photo2_data, photo3_data, photo4_data 
-            FROM cattle_info WHERE 1=1
-        """
-        params = []
         if breed:
             query += " AND breed ILIKE %s"
             params.append(f"%{breed}%")
@@ -113,16 +109,17 @@ def dashboard():
             query += " AND tag_no ILIKE %s"
             params.append(f"%{tag_no}%")
 
+        cursor.execute(query, tuple(params))
+        result = cursor.fetchall()
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(query, params)
-        result = cur.fetchall()
-        cur.close()
-        conn.close()
-        searched = True
+        connection.close()
+        return render_template("index.html", result=result, searched=True)
 
-    return render_template("index.html", searched=searched, result=result)
+    # GET method: no filters
+    cursor.execute("SELECT id, breed, color, age, shed_no, gender, tag_no, photo1, photo2, photo3, photo4 FROM cattle_info")
+    result = cursor.fetchall()
+    connection.close()
+    return render_template("index.html", result=result, searched=False)
 
 @app.route('/add_cattle', methods=['GET', 'POST'])
 def add_cattle():
