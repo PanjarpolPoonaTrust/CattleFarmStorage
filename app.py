@@ -73,7 +73,7 @@ def logout():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    if 'username' not in session:
+    if 'doctor_username' not in session:
         return redirect(url_for('login'))
 
     connection = get_db_connection()
