@@ -79,7 +79,7 @@ def dashboard():
     connection = get_db_connection()
     cursor = connection.cursor()
 
-    query = "SELECT id, breed, color, age, shed_no, gender, tag_no, photo1, photo2, photo3, photo4 FROM cattle_info WHERE 1=1"
+    query = "SELECT id, breed, color, age, shed_no, gender, tag_no, photo1_data, photo2_data, photo3_data, photo4_data FROM cattle_info WHERE 1=1"
     params = []
 
     if request.method == 'POST':
@@ -116,7 +116,7 @@ def dashboard():
         return render_template("index.html", result=result, searched=True)
 
     # GET method: no filters
-    cursor.execute("SELECT id, breed, color, age, shed_no, gender, tag_no, photo1, photo2, photo3, photo4 FROM cattle_info")
+    cursor.execute("SELECT id, breed, color, age, shed_no, gender, tag_no, photo1_data, photo2_data, photo3_data, photo4_data FROM cattle_info")
     result = cursor.fetchall()
     connection.close()
     return render_template("index.html", result=result, searched=False)
